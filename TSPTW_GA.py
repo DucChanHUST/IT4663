@@ -43,6 +43,15 @@ def read_data_from_keyboard():
 
     return n, e, l, d, t
 
+
+def print_data(n, e, l, d, t):
+    print(n)
+    for ei, li, di in zip(e, l, d):
+        print(ei, li, di)
+    for row in t:
+        print(' '.join(map(str, row)))
+
+
 filename = "dataset/input10.txt"
 n, e, l, d, t = read_data_from_file(filename)
 # n, e, l, d, t = read_data_from_keyboard()
@@ -154,5 +163,6 @@ def genetic_algorithm(pop_size=100, max_gen=1000, mutation_rate=0.2):
 if __name__ == '__main__':
     # genetic_algorithm()
     best_individual, best_value = genetic_algorithm()
+    print_data(n, e, l, d, t)
     print(n)
     print(" ".join(map(str, best_individual[1:-1])))
