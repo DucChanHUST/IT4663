@@ -1,6 +1,29 @@
 import random
 
 
+def read_data_from_file(filename):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    n = int(lines[0].strip())
+    e = []
+    l = []
+    d = []
+    for i in range(1, n + 1):
+        ei, li, di = map(int, lines[i].strip().split())
+        e.append(ei)
+        l.append(li)
+        d.append(di)
+
+    t = []
+
+    for i in range(n + 1, 2 * n + 2):
+        row = list(map(int, lines[i].strip().split()))
+        t.append(row)
+
+    return n, e, l, d, t
+
+
 def read_data_from_keyboard():
     n = int(input())
     e = []
@@ -20,9 +43,9 @@ def read_data_from_keyboard():
 
     return n, e, l, d, t
 
-
-# n, e, l, d, t = read_data_from_file(filename)
-n, e, l, d, t = read_data_from_keyboard()
+filename = "dataset/input10.txt"
+n, e, l, d, t = read_data_from_file(filename)
+# n, e, l, d, t = read_data_from_keyboard()
 e = [0] + e
 l = [0] + l
 d = [0] + d
@@ -109,7 +132,7 @@ def mutate(individual, mutation_rate=0.2):
     return individual
 
 
-def genetic_algorithm(pop_size=100, max_gen=10000, mutation_rate=0.2):
+def genetic_algorithm(pop_size=100, max_gen=1000, mutation_rate=0.2):
     population = generate_init_population(pop_size)
     for gen in range(max_gen):
         random.shuffle(population)
