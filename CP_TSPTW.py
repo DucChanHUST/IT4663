@@ -15,7 +15,7 @@ def TSP_CP(n, time_matrix, dist_matrix):
     # Initialize input
     d[0] = 0
     e[0] = 0
-    l[0] = 1000000000
+    l[0] = int(1e9)
     for i in range(1, num_nodes):
         e[i] = time_matrix[i-1][0]
         l[i] = time_matrix[i-1][1]
@@ -26,54 +26,73 @@ def TSP_CP(n, time_matrix, dist_matrix):
             
     # Define variables
     x = {}  # x[i,j] = 1 if i -> j else 0
-    M = {}  # M[i] = time to deliver at city i = Arrival time at city i + time waiting at city i
-    w = {}  # time waiting at city i
-    
+    M = {}  # M[i] = Arrival time at city i
+    w = {}  # w[i] = time waiting at city i
     # Initialize variables
     for i in range(num_nodes):
         for j in range(num_nodes):
-            x[i, j] = model.NewIntVar(0, 1, 'x[%i,%i]' % (i, j))
+           x[i, j] = model.NewBoolVar('x[%i,%i]' % (i, j))
 
     M[0] = model.NewIntVar(0, 0, 'M[%i]' % 0)
     for i in range(1, num_nodes):
-        M[i] = model.NewIntVar(e[i], l[i], 'M[%i]' % i)
+        M[i] = model.NewIntVar(0, l[i], 'M[%i]' % i)
 
-    for i in range(num_nodes):
-        w[i] = model.NewIntVar(0, l[i] - e[i], 'w[%i]' % i)
+    w[0] = model.NewIntVar(0, 0, 'w[%i]' % 0)
+    for i in range(1, num_nodes):
+        w[i] = model.NewIntVar(0, l[i], 'w[%i]' % i)
 
     # Define constraints
     # Each city is visited exactly once
     for i in range(num_nodes):
         model.Add(sum(x[i, j] for j in range(num_nodes) if j != i) == 1)
         model.Add(sum(x[j, i] for j in range(num_nodes) if j != i) == 1)
-        
+    
     # Time window
     for i in range(num_nodes):
         for j in range(1, num_nodes):
             if i != j:
-                model.Add(M[i] + C[i, j]*x[i, j] - M[j] <= (1 - x[i, j]) * 1000000000)
-                model.Add(w[j] == M[j] - M[i] - C[i, j]).OnlyEnforceIf(x[i, j])
-                
+                model.Add(M[i] + w[i] + C[i, j]*x[i, j] - M[j] <= (1 - x[i, j]) * int(1e9))
+
+    # Waiting time
+    for i in range(1, num_nodes):
+        model.Add(w[i] >= 0)
+        model.Add(w[i] >= e[i] - M[i])
+        t1 = model.NewBoolVar('t1[%i]' % i)
+        t2 = model.NewBoolVar('t2[%i]' % i)
+        model.Add(w[i] <= int(1e9) * t1)
+        model.Add(w[i] <= int(1e9) * t2 + e[i] - M[i])
+        model.Add(t1 + t2 <= 1)
+        
     # Objective
     model.Minimize(sum(C[i, j] * x[i, j] for i in range(num_nodes) for j in range(num_nodes) if j != i) 
                    + sum(w[i] for i in range(num_nodes)))
     
-    # Solve
-    solver = cp_model.CpSolver()
-    status = solver.Solve(model)
+    try:
+        # Solve
+        solver = cp_model.CpSolver()
+        status = solver.Solve(model)
 
-    if status == cp_model.OPTIMAL:
-        print(n)
-        solution = {}
-        solution[0] = 0
+        if status == cp_model.OPTIMAL:
+            print("Optimal solution found:")
+            # Print the solution
+            solution = {}
+            solution[0] = 0
 
-        for i in range(1, num_nodes):
-            solution[i] = solver.Value(M[i])
-        solution = sorted(solution.items(), key=lambda x: x[1])
+            for i in range(1, num_nodes):
+                solution[i] = solver.Value(M[i])
+            solution = sorted(solution.items(), key=lambda x: x[1])
 
-        for i in range(1, num_nodes):
-            print(solution[i][0], end=' ')
-        return solver.ObjectiveValue()
+            print("Path:")
+            for i in range(1, num_nodes):
+                print(solution[i][0], end=' ')
+            print()
+
+            print("Objective value:", solver.ObjectiveValue())
+        else:
+            print("No optimal solution found.")
+
+    except Exception as e:
+        print("Solver failed with error:", e)
                     
 
 if __name__ == '__main__':
